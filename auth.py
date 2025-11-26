@@ -1,6 +1,6 @@
 from passlib.context import CryptContext
 from datetime import datetime,timedelta
-from jose import JWTError,jwt
+from jose import ExpiredSignatureError, JWTError,jwt
 from fastapi.security import OAuth2PasswordBearer     
 from fastapi import Depends,HTTPException,status,WebSocket,WebSocketException
 from dotenv import load_dotenv
@@ -116,38 +116,37 @@ async def get_current_user(db:db_session,token:str = Depends(oauth2_scheme)):
 
         
 
-async def get_current_user_ws(websocket:WebSocket,db:AsyncSession = Depends(get_db)):
+# import from jose import ExpiredSignatureError, JWTError
 
-    # credential_exception = WebSocketException(code=status.WS_1008_POLICY_VIOLATION,reason="Could not validate token.")
-
-    #Extract jwt token form url
+async def get_current_user_ws(websocket: WebSocket, db: AsyncSession = Depends(get_db)):
     token = websocket.query_params.get('token')
     if not token:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION,reason="Missing token")
-        raise WebSocketException(code=1008, reason="Missing token")
-        
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Missing token")
+        return  # Just return after closing, no need to raise
 
-    #Decode jwt token  
     try:
-        payload = jwt.decode(token,os.getenv('SECRET_KEY'),algorithms=os.getenv('ALGORITHM'))
-        username:str = payload.get('username')
-        token_version:int = int(payload.get('token_version'))
-        if  username is None or token_version is None:
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION,reason="Could not validate token.")
-            raise WebSocketException(code=1008, reason="Invalid token")
+        payload = jwt.decode(token, os.getenv('SECRET_KEY'), algorithms=[os.getenv('ALGORITHM')])
+        username: str = payload.get('username')
+        token_version: int = int(payload.get('token_version'))
+        
+        if username is None or token_version is None:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token structure")
+            return
 
-        #Check if content of jwt are valid  and return user if valid
-        token_data = TokenData(username = username)
-        user = await get_user(username=token_data.username,db=db)
+        user = await get_user(username=username, db=db)  # Use username directly
         if user is None or user.token_version != token_version:
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION,reason="Invalid token or version.")
-            raise WebSocketException(code=1008, reason="Invalid token or version.")
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token or version")
+            return
        
         return user
 
+    except ExpiredSignatureError:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Token expired. Please log in again.")
+        return
+        
     except JWTError as e:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION,reason="Invalid JWT")
-        raise WebSocketException(code=1008, reason="Invalid token")
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token")
+        return
 
         
 

@@ -43,7 +43,6 @@ class SendRequest(BaseModel):
 class GetTheUser(BaseModel):
     name:str
     email:EmailStr
-    hashed_password:str
     description:Optional[str]
 
 
@@ -81,3 +80,19 @@ class SendMessage(BaseModel):
 class GetGroup(BaseModel):
     name:str
     description:Optional[str]
+    
+    
+class SetAI(BaseModel):
+    name:str
+    description:Optional[str]
+    prompt_template1:Optional[str]
+    prompt_template2:Optional[str]
+
+    class Config:
+        orm_mode = True
+        
+class GetAiAgent(BaseModel):
+    name:str
+    description:Optional[str]
+    prompt_template1:Optional[str]
+    prompt_template2:Optional[str]

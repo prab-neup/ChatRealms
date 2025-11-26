@@ -36,6 +36,7 @@ class User(BaseModel):
 
     #Relationships with group   
     groups = relationship('Group',secondary="group_and_user_association",back_populates='users')
+    
     #Relationship with request table
     request_sent = relationship("User",
                                 secondary="join_requests",
@@ -59,6 +60,8 @@ class AiAgent(BaseModel):
 
     name = Column(String(50),unique=True,nullable=False,index=True)
     description = Column(Text,nullable=True)
+    prompt_template1 = Column(Text,nullable=True)
+    prompt_template2 = Column(Text,nullable=True)
     #Relationships
     messages = relationship("AgentMessage",back_populates="sender",cascade="all,delete-orphan")
     groups = relationship("Group",secondary="group_and_agent_associations",back_populates="agents")
@@ -75,6 +78,8 @@ class Group(BaseModel):
     agents_messages = relationship("AgentMessage",back_populates="message_belongs_to_group",cascade="all,delete-orphan",order_by="desc(AgentMessage.sent_at)")
     users = relationship("User",secondary="group_and_user_association",back_populates="groups")
     agents = relationship("AiAgent",secondary="group_and_agent_associations", back_populates="groups")
+
+
 
 class GroupAndUser(BaseModel):
     __tablename__ = "group_and_user_association"

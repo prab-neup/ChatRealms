@@ -51,7 +51,7 @@ async def login_for_token(db:AsyncSession = Depends(get_db),form_data:OAuth2Pass
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires  = timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES",30)))
+    access_token_expires  = timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES",60)))
     access_token = create_access_token(data={'username':user.name,"token_version":user.token_version},expires_delta=access_token_expires)
     return {"access_token":access_token,"token_type":"bearer"}
 
